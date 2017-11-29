@@ -1,0 +1,97 @@
+---
+title: "CleanData"
+author: "Karim Helmy"
+date: "11/14/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+loci = read.csv("../SorghumData/loci.csv",header=TRUE)
+head(loci)
+```
+
+```{r}
+loci.clean = loci[c("Locus.ID","Chr","From","To")]
+loci.clean$NodeID = seq_len(dim(loci.clean)[1])
+loci.clean
+write.csv(loci.clean,"../SorghumData/loci_clean.csv",row.names=FALSE,quote=FALSE,na="")
+```
+
+```{r}
+sbi1.stats = data.frame(Chr=seq(from=1,to=11),
+                        Length=c(73840631, 77932606, 74441160, 68034345, 62352331, 62208784, 
+                                 64342021, 55460251, 59635592, 60981646, 40203219))
+sbi1.stats$From = c(1)
+sbi1.stats$To = sbi1.stats$Length
+for (i in seq(2,11)){
+  sbi1.stats$From[i] = sbi1.stats$From[i] + sbi1.stats$To[i-1]
+  sbi1.stats$To[i] = sbi1.stats$To[i] + sbi1.stats$To[i-1]
+}
+sbi1.stats
+write.csv(sbi1.stats,"../SorghumData/chr_stats.csv",row.names=FALSE,quote=FALSE,na="")
+```
+
+
+```{r}
+bap = read.table("../SNPData/BAP_GBS_BTXv2.csv",header=TRUE)
+head(bap)
+```
+
+```{r}
+currentNode = 1
+snpNodes = c()
+for (i in seq_len(dim(bap)[1])){
+  while (currentNode != dim(loci.clean)[1] &&
+        (bap$chrom[i] != loci.clean$Chr[currentNode] ||
+        abs(bap$pos[i] - loci.clean$To[currentNode]) > abs(bap$pos[i] - loci.clean$From[currentNode+1]))){
+    currentNode = currentNode + 1
+  }
+  snpNodes = c(snpNodes,currentNode)
+}
+snpNodes
+```
+
+```{r}
+loci.filtered = loci.clean[unique(snpNodes),]
+write.csv(loci.filtered,"../SorghumData/loci_filtered.csv",row.names=FALSE,quote=FALSE,na="")
+```
+
+```{r}
+assignmentData = data.frame(NodeID = snpNodes, MajorAllele = "A", MinorAllele = "A")
+assignmentData$MajorAllele = ifelse(startsWith(as.character(bap$alleles),"A"),"A",assignmentData$MajorAllele)
+assignmentData$MajorAllele = ifelse(startsWith(as.character(bap$alleles),"T"),"T",assignmentData$MajorAllele)
+assignmentData$MajorAllele = ifelse(startsWith(as.character(bap$alleles),"C"),"C",assignmentData$MajorAllele)
+assignmentData$MajorAllele = ifelse(startsWith(as.character(bap$alleles),"G"),"G",assignmentData$MajorAllele)
+assignmentData$MinorAllele = ifelse(endsWith(as.character(bap$alleles),"A"),"A",assignmentData$MinorAllele)
+assignmentData$MinorAllele = ifelse(endsWith(as.character(bap$alleles),"T"),"T",assignmentData$MinorAllele)
+assignmentData$MinorAllele = ifelse(endsWith(as.character(bap$alleles),"C"),"C",assignmentData$MinorAllele)
+assignmentData$MinorAllele = ifelse(endsWith(as.character(bap$alleles),"G"),"G",assignmentData$MinorAllele)
+write.csv(assignmentData,"../SNPData/AssignmentData.csv",row.names=FALSE,quote=FALSE,na="")
+```
+
+```{r}
+bapData = bap[,-seq(1,11)] == assignmentData$MajorAllele
+bapData = data.frame(apply(bapData,2,as.numeric))
+set.seed(15217)
+train.inds = sample(seq(1,dim(bapData)[2]),dim(bapData)[2]/2)
+test.set = bapData[,train.inds]
+train.set = bapData[,train.inds]
+
+#bapData = data.frame(NodeID = assignmentData$NodeID,bapData)
+```
+
+```{r}
+write.table(train.set,"../SNPData/TrainData.csv",row.names=FALSE,col.names=FALSE,quote=FALSE,na="",sep=",")
+write.table(test.set,"../SNPData/TestData.csv",row.names=FALSE,col.names=FALSE,quote=FALSE,na="",sep=",")
+write.table(snpNodes,"../SNPData/SNPNodes.csv",row.names=FALSE,col.names=FALSE,quote=FALSE,na="",sep=",")
+```
+
+```{r}
+write.table(table(snpNodes),"../SNPData/SNPCounts.csv",row.names=FALSE,col.names=FALSE,quote=FALSE,na="",sep=",")
+```
+
+

@@ -1,0 +1,6 @@
+#from https://github.com/liufuyang/kaggle-youtube-8m/blob/master/tf-learn/example-5-google-cloud/trainer/cloudml-gpu.yaml
+trainingInput:
+  scaleTier: CUSTOM
+  # standard_gpu provides 1 GPU. Change to complex_model_m_gpu for 4 GPUs
+  masterType: complex_model_m_gpu
+  runtimeVersion: "1.0"
