@@ -12,6 +12,8 @@ def train(trainData, model, sparseIndices, sess):
         train_loss_i = model.train_on_batch(snpTrainDenseI, snpTrainDenseI)
         print(train_loss_i)
         if i % 5 == 0:
-            model.save("./ModelDump/model_iter.h5")
-    model.save("./ModelDump/model_final.h5")
+            #model.save("./ModelDump/model_iter.h5")
+            model.save('gs://sorghumencoder/SorghumBioencoder/ModelDump/model_iter.h5')
+    #model.save("./ModelDump/model_final.h5")
+    model.save('gs://sorghumencoder/SorghumBioencoder/ModelDump/model_final.h5')
     return model

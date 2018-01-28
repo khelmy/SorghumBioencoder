@@ -17,9 +17,11 @@ for i in range(snpCounts.shape[0]):
     snpIndex += nodeInputSize
 sparseIndices = np.stack([np.zeros(sparseIndices.shape),sparseIndices],-1)
 snpDenseShape = np.array([1, snpCounts.shape[0] * nodeInputSize])
+sparseIndices2 = np.stack([np.arange(1, snpNodes.shape[0] + 1), snpNodes], -1)
 
 print(sparseIndices)
 print(snpDenseShape)
 
 np.save('../PickleDump/SparseIndices.npy',sparseIndices)
+np.save('../PickleDump/SparseIndices2.npy',sparseIndices2)
 np.save('../PickleDump/SNPDenseShape.npy',snpDenseShape)

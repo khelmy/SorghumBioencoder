@@ -1,10 +1,11 @@
 import numpy as np
 import tensorflow as tf
+import keras
 
-Dense = tf.keras.layers.Dense
-LocallyConnected1D = tf.keras.layers.LocallyConnected1D
-Activation = tf.keras.layers.Activation
-Sequential = tf.keras.models.Sequential
+Dense = keras.layers.Dense
+LocallyConnected1D = keras.layers.LocallyConnected1D
+Activation = keras.layers.Activation
+Sequential = keras.models.Sequential
 
 #numSNPs = 232302
 #numLoci = 5685
@@ -34,7 +35,6 @@ def buildModel(numSNPs, numLoci, maxLocus, numEncode):
         Activation('sigmoid'),  #Part of encoding layer (sigmoid)
         Dense(numLoci),         #Part of encoding layer (bring up from 256)
         #End encoding layer
-
         Dense(numLoci * maxLocus) #Upsample layer
     ])
     #Remember to postfilter after!

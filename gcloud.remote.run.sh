@@ -1,6 +1,6 @@
 #From https://github.com/liufuyang/kaggle-youtube-8m/tree/master/tf-learn/example-5-google-cloud
 export BUCKET_NAME=sorghumencoder
-export JOB_NAME="sorghum_bioencoder"
+export JOB_NAME="sorghum_bioencoder$(date +%Y%m%d_%H%M%S)"
 export JOB_DIR=gs://$BUCKET_NAME/$JOB_NAME
 export REGION=us-east1
 

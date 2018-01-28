@@ -3,26 +3,49 @@ import tensorflow as tf
 from . import NetDesign
 from . import train
 import argparse
+import keras
+from StringIO import StringIO
+from tensorflow.python.lib.io import file_io
 
-losses = tf.keras.losses
+def train_model(train_file='../PickleDump/TrainData.npy',**args):
+    losses = keras.losses
+    #gs://sorghumencoder/SorghumBioencoder/PickleDump/TrainData.npy
+    #(232302, 172) np array
+    #trainData = np.load('../PickleDump/TrainData.npy')
+    train_f = StringIO(file_io.read_file_to_string('gs://sorghumencoder/SorghumBioencoder/PickleDump/TrainData.npy'))
+    trainData = tf.Variable(initial_value=np.load(train_f), name='trainData')
+    #(232302, 172) np array
+    #testData = np.load('../PickleDump/TestData.npy')
+    test_f = StringIO(file_io.read_file_to_string('gs://sorghumencoder/SorghumBioencoder/PickleDump/TestData.npy'))
+    testData = tf.Variable(initial_value=np.load(test_f), name='testData')
+    #(232302,) np array
+    #snpNodes = np.load('../PickleDump/SNPNodes.npy')
+    nodes_f =  StringIO(file_io.read_file_to_string('gs://sorghumencoder/SorghumBioencoder/PickleDump/SNPNodes.npy'))
+    snpNodes = tf.Variable(initial_value=np.load(nodes_f), name='snpNodes')
+    #(5685, 2) np array
+    #How many (true) inputs does each downsample node have?
+    #snpCounts = np.load('../PickleDump/SNPCounts.npy')
+    counts_f = StringIO(file_io.read_file_to_string('gs://sorghumencoder/SorghumBioencoder/PickleDump/SNPCounts.npy'))
+    snpCounts = tf.Variable(initial_value=np.load(counts_f), name='snpCounts')
 
-sess = tf.Session()
+    #Load objects from .npy
+    #sparseIndices = np.load('../PickleDump/SparseIndices.npy')
+    indices_f = StringIO(file_io.read_file_to_string('gs://sorghumencoder/SorghumBioencoder/PickleDump/SparseIndices.npy'))
+    sparseIndices = tf.Variable(initial_value=np.load(indices_f), name='sparseIndices')
+    #snpDenseShape = np.load('../PickleDump/SNPDenseShape.npy')
+    dense_f = StringIO(file_io.read_file_to_string('gs://sorghumencoder/SorghumBioencoder/PickleDump/SNPDenseShape.npy'))
+    snpDenseShape = tf.Variable(initial_value=np.load(dense_f), name='snpDenseShape')
 
-#(232302, 172) np array
-trainData = np.load('./PickleDump/TrainData.npy')
-#(232302, 172) np array
-testData = np.load('./PickleDump/TestData.npy')
-#(232302,) np array
-snpNodes = np.load('./PickleDump/SNPNodes.npy')
-#(5685, 2) np array
-#How many (true) inputs does each downsample node have?
-snpCounts = np.load('./PickleDump/SNPCounts.npy')
+    init_op = tf.initialize_all_variables()
+    sess = tf.Session()
+    sess.run(init_op)
+    trainData = trainData.eval(session=sess)
+    testData = testData.eval(session=sess)
+    snpNodes = snpNodes.eval(session=sess)
+    snpCounts = snpCounts.eval(session=sess)
+    sparseIndices = sparseIndices.eval(session=sess)
+    snpDenseShape = snpDenseShape.eval(session=sess)
 
-#Load objects from .npy
-sparseIndices = np.load('./PickleDump/SparseIndices.npy')
-snpDenseShape = np.load('./PickleDump/SNPDenseShape.npy')
-
-def train_model(train_file='./PickleDump/TrainData.npy',**args):
     maxLocus = snpCounts[:,1].max()
     maskIndices = sparseIndices[:,1]
 
@@ -31,6 +54,8 @@ def train_model(train_file='./PickleDump/TrainData.npy',**args):
                                 values=np.ones((sparseIndices.shape[0],)),
                                 dense_shape=snpDenseShape)
     out_mask_arr = tf.sparse_tensor_to_dense(out_mask).eval(session=sess)
+
+    sess.close()
 
     #in_val = tf.SparseTensor(indices=main.sparseIndices,
     #                            values=main.trainData[:,0],
@@ -51,7 +76,8 @@ def train_model(train_file='./PickleDump/TrainData.npy',**args):
                         numEncode=256)
     model.compile(loss=masked_hinge_loss,
                     optimizer='sgd')
-    model.save("./ModelDump/model_initial.h5")
+    #model.save("../ModelDump/model_initial.h5")
+    model.save('gs://sorghumencoder/SorghumBioencoder/ModelDump/model_initial.h5')
     model = train.train(trainData, model, sparseIndices,trainData,sess)
 
     # To load model:
@@ -61,6 +87,7 @@ def train_model(train_file='./PickleDump/TrainData.npy',**args):
 #From:
 #https://github.com/liufuyang/kaggle-youtube-8m/blob/master/tf-learn/example-5-google-cloud/trainer/example5.py
 if __name__ == '__main__':
+    sess = tf.Session()
     parser = argparse.ArgumentParser()
     # Input Arguments
     parser.add_argument(
@@ -78,3 +105,4 @@ if __name__ == '__main__':
     arguments = args.__dict__
 
     train_model(**arguments)
+    sess.close()
