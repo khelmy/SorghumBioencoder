@@ -62,22 +62,21 @@ def train_model(train_file='../PickleDump/TrainData.npy',**args):
 
     #Build the model (256 is arbitrary)
 
-    def masked_cosine_proximity(y_true,y_pred):
-        with tf.Session() as sess:
+        def masked_cosine_proximity(y_true,y_pred):
             y_pred_arr = y_pred.eval(session=sess)
             y_pred_arr_masked = y_pred_arr * out_mask_arr
             y_pred_masked = tf.convert_to_tensor(y_pred_arr_masked)
-        return losses.cosine_proximity(y_true,y_pred_masked)
+            return losses.cosine_proximity(y_true,y_pred_masked)
 
-    model = NetDesign.buildModel(numSNPs=trainData[:,0].shape[0],
-                        numLoci=snpCounts.shape[0],
-                        maxLocus=maxLocus,
-                        numEncode=256)
-    model.compile(loss=masked_cosine_proximity,
-                    optimizer='sgd')
-    #model.save("../ModelDump/model_initial.h5")
-    model.save('gs://sorghumencoder/SorghumBioencoder/ModelDump/model_initial.h5')
-    model = train.train(trainData, model, sparseIndices, trainData)
+        model = NetDesign.buildModel(numSNPs=trainData[:,0].shape[0],
+                            numLoci=snpCounts.shape[0],
+                            maxLocus=maxLocus,
+                            numEncode=256)
+        model.compile(loss=masked_cosine_proximity,
+                        optimizer='sgd')
+        #model.save("../ModelDump/model_initial.h5")
+        model.save('gs://sorghumencoder/SorghumBioencoder/ModelDump/model_initial.h5')
+        model = train.train(trainData, model, sparseIndices, trainData)
 
     # To load model:
     # model = load_model('my_model.h5')
@@ -85,22 +84,21 @@ def train_model(train_file='../PickleDump/TrainData.npy',**args):
 #From:
 #https://github.com/liufuyang/kaggle-youtube-8m/blob/master/tf-learn/example-5-google-cloud/trainer/example5.py
 if __name__ == '__main__':
-    sess = tf.Session()
-    parser = argparse.ArgumentParser()
-    # Input Arguments
-    parser.add_argument(
-      '--train-file',
-      help='GCS or local paths to training data',
-      required=True
-    )
+    with tf.Session() as sess:
+        parser = argparse.ArgumentParser()
+        # Input Arguments
+        parser.add_argument(
+          '--train-file',
+          help='GCS or local paths to training data',
+          required=True
+        )
 
-    parser.add_argument(
-      '--job-dir',
-      help='GCS location to write checkpoints and export models',
-      required=True
-    )
-    args = parser.parse_args()
-    arguments = args.__dict__
+        parser.add_argument(
+          '--job-dir',
+          help='GCS location to write checkpoints and export models',
+          required=True
+        )
+        args = parser.parse_args()
+        arguments = args.__dict__
 
-    train_model(**arguments)
-    sess.close()
+        train_model(**arguments)
