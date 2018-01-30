@@ -64,17 +64,17 @@ def train_model(train_file='../PickleDump/TrainData.npy',**args):
 
     #Build the model (256 is arbitrary)
 
-    def masked_hinge_loss(y_true,y_pred):
+    def masked_cosine_proximity(y_true,y_pred):
         y_pred_arr = y_pred.eval(session=sess)
         y_pred_arr_masked = y_pred_arr * out_mask_arr
         y_pred_masked = tf.convert_to_tensor(y_pred_arr_masked)
-        return losses.hinge(y_true,y_pred_masked)
+        return losses.cosine_proximity(y_true,y_pred_masked)
 
     model = NetDesign.buildModel(numSNPs=trainData[:,0].shape[0],
                         numLoci=snpCounts.shape[0],
                         maxLocus=maxLocus,
                         numEncode=256)
-    model.compile(loss=masked_hinge_loss,
+    model.compile(loss=masked_cosine_proximity,
                     optimizer='sgd')
     #model.save("../ModelDump/model_initial.h5")
     model.save('gs://sorghumencoder/SorghumBioencoder/ModelDump/model_initial.h5')
