@@ -37,25 +37,23 @@ def train_model(train_file='../PickleDump/TrainData.npy',**args):
     snpDenseShape = tf.Variable(initial_value=np.load(dense_f), name='snpDenseShape')
 
     init_op = tf.initialize_all_variables()
-    sess = tf.Session()
-    sess.run(init_op)
-    trainData = trainData.eval(session=sess)
-    testData = testData.eval(session=sess)
-    snpNodes = snpNodes.eval(session=sess)
-    snpCounts = snpCounts.eval(session=sess)
-    sparseIndices = sparseIndices.eval(session=sess)
-    snpDenseShape = snpDenseShape.eval(session=sess)
+    with tf.Session() as sess:
+        sess.run(init_op)
+        trainData = trainData.eval(session=sess)
+        testData = testData.eval(session=sess)
+        snpNodes = snpNodes.eval(session=sess)
+        snpCounts = snpCounts.eval(session=sess)
+        sparseIndices = sparseIndices.eval(session=sess)
+        snpDenseShape = snpDenseShape.eval(session=sess)
 
-    maxLocus = snpCounts[:,1].max()
-    maskIndices = sparseIndices[:,1]
+        maxLocus = snpCounts[:,1].max()
+        maskIndices = sparseIndices[:,1]
 
-    #Example SparseTensor object. Just replace values to represent SNP sequences
-    out_mask = tf.SparseTensor(indices=sparseIndices,
-                                values=np.ones((sparseIndices.shape[0],)),
-                                dense_shape=snpDenseShape)
-    out_mask_arr = tf.sparse_tensor_to_dense(out_mask).eval(session=sess)
-
-    sess.close()
+        #Example SparseTensor object. Just replace values to represent SNP sequences
+        out_mask = tf.SparseTensor(indices=sparseIndices,
+                                    values=np.ones((sparseIndices.shape[0],)),
+                                    dense_shape=snpDenseShape)
+        out_mask_arr = tf.sparse_tensor_to_dense(out_mask).eval(session=sess)
 
     #in_val = tf.SparseTensor(indices=main.sparseIndices,
     #                            values=main.trainData[:,0],
@@ -65,10 +63,11 @@ def train_model(train_file='../PickleDump/TrainData.npy',**args):
     #Build the model (256 is arbitrary)
 
     def masked_cosine_proximity(y_true,y_pred):
-        y_pred_arr = y_pred.eval(session=sess)
-        y_pred_arr_masked = y_pred_arr * out_mask_arr
-        y_pred_masked = tf.convert_to_tensor(y_pred_arr_masked)
-        return losses.cosine_proximity(y_true,y_pred_masked)
+        with tf.Session() as sess:
+            y_pred_arr = y_pred.eval(session=sess)
+            y_pred_arr_masked = y_pred_arr * out_mask_arr
+            y_pred_masked = tf.convert_to_tensor(y_pred_arr_masked)
+            return losses.cosine_proximity(y_true,y_pred_masked)
 
     model = NetDesign.buildModel(numSNPs=trainData[:,0].shape[0],
                         numLoci=snpCounts.shape[0],
@@ -78,11 +77,10 @@ def train_model(train_file='../PickleDump/TrainData.npy',**args):
                     optimizer='sgd')
     #model.save("../ModelDump/model_initial.h5")
     model.save('gs://sorghumencoder/SorghumBioencoder/ModelDump/model_initial.h5')
-    model = train.train(trainData, model, sparseIndices,trainData,sess)
+    model = train.train(trainData, model, sparseIndices, trainData)
 
     # To load model:
     # model = load_model('my_model.h5')
-    sess.close()
 
 #From:
 #https://github.com/liufuyang/kaggle-youtube-8m/blob/master/tf-learn/example-5-google-cloud/trainer/example5.py
