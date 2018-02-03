@@ -1,0 +1,79 @@
+---
+title: "BuildPathways"
+author: "Karim Helmy"
+date: "2/2/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Get data.
+```{r}
+keggData = read.delim("../SorghumData/kegg_20151209.txt", header = FALSE, stringsAsFactors = FALSE)
+filteredLoci = read.csv("../SorghumData/loci_filtered.csv", header = TRUE, stringsAsFactors = FALSE)
+```
+
+Sanity check by checking their heads.
+```{r}
+head(keggData)
+head(filteredLoci)
+```
+
+More sanity checks, this time numerical.
+```{r}
+dim(filteredLoci) # Sanity check shape
+dim(keggData) # Sanity check shape
+sum(filteredLoci$Locus.ID %in% keggData$V3) # How many filteredLoci in keggData?
+sum(keggData$V3 %in% filteredLoci$Locus.ID) # How many keggData in filteredLoci?
+```
+
+Only use the keggData rows that are in filteredLoci
+```{r}
+keggDataFiltered = keggData[keggData$V3 %in% filteredLoci$Locus.ID,]
+```
+
+More sanity checks.
+```{r}
+dim(keggDataFiltered)
+head(keggDataFiltered)
+```
+
+Save what we have so far.
+```{r}
+write.table(keggDataFiltered, "../SorghumData/kegg_filtered.txt", sep = "\t", quote = FALSE)
+```
+
+Make data munging easier
+```{r}
+# Seed with 1:1 connections with self
+filteredLoci$NewNodeID = seq(1,length(filteredLoci$NodeID))
+connections = data.frame(downsampleNode = filteredLoci$NewNodeID, pathwayNode = filteredLoci$NewNodeID)
+row.names(filteredLoci) = filteredLoci$Locus.ID
+```
+
+Now, we update connections to include all of the shared pathway nodes.
+```{r}
+for (i in 1:length(keggDataFiltered$V1)){
+  thisID = keggDataFiltered$V3[i]
+  thisPath = keggDataFiltered$V1[i]
+  haveSamePath = keggDataFiltered$V3[which(keggDataFiltered$V1 == keggDataFiltered$V1[i])]
+  newConnects = filteredLoci[haveSamePath,]$NewNodeID
+  newConnects.df = rbind(newConnects.df,
+                         data.frame(downsampleNode = filteredLoci[thisID,]$NewNodeID, pathwayNode = newConnects))
+}
+connections = rbind(connections, newConnects.df)
+```
+
+Remove duplicates and column names.
+```{r}
+connections = unique(connections)
+connections = unname(connections)
+```
+
+We're done! Now just save the file.
+```{r}
+write.csv(connections, "../SorghumData/pathway_connections.csv", quote = FALSE, row.names = FALSE)
+```
+
